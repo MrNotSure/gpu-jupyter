@@ -1,0 +1,6 @@
+USER root
+
+RUN conda install --quiet --yes -c jetbrains kotlin-jupyter-kernel
+
+# Switch back to jovyan to avoid accidental container runs as root
+USER $NB_UID

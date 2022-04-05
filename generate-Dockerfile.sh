@@ -111,6 +111,8 @@ echo "
 " >> $DOCKERFILE
 cat src/Dockerfile.gpulibs >> $DOCKERFILE
 
+
+
 # install useful packages if not excluded or spare mode is used
 if [[ "$no_useful_packages" != 1 ]]; then
   echo "
@@ -140,6 +142,21 @@ if [[ "$USE_PASSWORD" == 1 ]]; then
   }
 }" > src/jupyter_notebook_config.json
 fi
+
+echo "
+############################################################################
+########################## Dependency: C++ kernel #############################
+############################################################################
+" >> $DOCKERFILE
+cat src/Dockerfile.cppkernel >> $DOCKERFILE
+
+echo "
+############################################################################
+########################## Dependency: Kotlin kernel #############################
+############################################################################
+" >> $DOCKERFILE
+cat src/Dockerfile.kotlinkernel >> $DOCKERFILE
+
 
 cp src/jupyter_notebook_config.json .build/
 echo >> $DOCKERFILE
