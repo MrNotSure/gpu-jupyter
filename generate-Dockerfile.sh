@@ -167,6 +167,10 @@ echo "COPY jupyter_notebook_config.json /etc/jupyter/"  >> $DOCKERFILE
 export JUPYTER_UID=$(id -u)
 export JUPYTER_GID=$(id -g)
 
+# Replace line 10 with a newer cuda version, remove once original got updated
+#sed -i '10s/.*/FROM nvidia/cuda:11.3.1-runtime-ubuntu20.04/' ${DOCKERFILE}
+sed '10 c\FROM nvidia/cuda:11.1-cudnn8-runtime-ubuntu18.04' ${DOCKERFILE} > temp_Dockerfile
+cat temp_Dockerfile > ${DOCKERFILE}
 #cp $(find $(dirname $DOCKERFILE) -type f | grep -v $STACKS_DIR | grep -v .gitkeep) .
 echo
 echo "The GPU Dockerfile was generated successfully in file ${DOCKERFILE}."

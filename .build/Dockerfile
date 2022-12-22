@@ -7,7 +7,7 @@
 
 # Use NVIDIA CUDA as base image and run the same installation as in the other packages.
 # The version of cudatoolkit must match those of the base image, see Dockerfile.pytorch
-FROM nvidia/cuda:11.2.2-cudnn8-runtime-ubuntu20.04
+FROM nvidia/cuda:11.1-cudnn8-runtime-ubuntu20.04
 LABEL authors="Christoph Schranz <christoph.schranz@salzburgresearch.at>, Mathematical Michael <consistentbayes@gmail.com>"
 # This is a concatenated Dockerfile, the maintainers of subsequent sections may vary.
 RUN chmod 1777 /tmp && chmod 1777 /var/tmp
@@ -443,7 +443,10 @@ RUN conda install --quiet --yes \
 # Check compatibility here:
 # https://pytorch.org/get-started/locally/
 # Installation via conda leads to errors installing cudatoolkit=11.1
-RUN pip install --no-cache-dir torch torchvision torchaudio torchviz
+#RUN conda install pytorch torchvision torchaudio cudatoolkit=11.3 -c pytorch
+#RUN pip3 install torch torchvision torchaudio --extra-index-url https://download.pytorch.org/whl/cu113
+#RUN conda install pytorch==1.10.1 torchvision==0.11.2 torchaudio==0.10.1 cudatoolkit=11.3 -c pytorch -c conda-forge
+RUN pip install torch==1.8.2+cu111 torchvision==0.9.2+cu111 torchaudio==0.8.2 -f https://download.pytorch.org/whl/lts/1.8/torch_lts.html
 
 USER root
 
@@ -505,5 +508,41 @@ RUN fix-permissions /home/$NB_USER
 # Switch back to jovyan to avoid accidental container runs as root
 USER $NB_UID
 
+############################################################################
+########################## Dependency: C++ kernel #############################
+############################################################################
+
+USER root
+
+# RUN mamba install --quiet --yes -c conda-forge xeus-cling
+RUN git clone https://github.com/jupyter-xeus/xeus-cling
+
+RUN mamba install --quiet --yes -c conda-forge cmake "xeus>=2.0,<3.0" cling=0.8 clangdev=5.0.0 llvmdev=5 "nlohmann_json>=3.9.1,<3.10" "cppzmq>=4.6.0,<5" "xtl>=0.7,<0.8" pugixml "cxxopts>=2.1.1,<2.2"
+WORKDIR xeus-cling
+
+# Setting the environment variables manually is a bit hacky, you can also run it after starting the jupyter lab and opening a terminal with the following commands and not running the next 4 run commands:
+# cmake -D CMAKE_INSTALL_PREFIX=${CONDA_PREFIX} -D CMAKE_C_COMPILER=$CC -D CMAKE_CXX_COMPILER=$CXX -D CMAKE_INSTALL_LIBDIR=${CONDA_PREFIX}/lib -D DOWNLOAD_GTEST=ON
+# make && make install
+
+RUN export CONDA_PREFIX=/opt/conda
+RUN export CC=/opt/conda/bin/x86_64-conda-linux-gnu-cc
+RUN export CXX=/opt/conda/bin/x86_64-conda-linux-gnu-c++
+RUN cmake -D CMAKE_INSTALL_PREFIX=/opt/conda -D CMAKE_C_COMPILER=/opt/conda/bin/x86_64-conda-linux-gnu-cc -D CMAKE_CXX_COMPILER=/opt/conda/bin/x86_64-conda-linux-gnu-c++ -D CMAKE_INSTALL_LIBDIR=/opt/conda/lib -D DOWNLOAD_GTEST=ON .
+RUN make && make install
+
+RUN fix-permissions /home/$NB_USER
+WORKDIR $HOME
+# Switch back to jovyan to avoid accidental container runs as root
+USER $NB_UID
+############################################################################
+########################## Dependency: Kotlin kernel #############################
+############################################################################
+
+USER root
+
+RUN conda install --quiet --yes -c jetbrains kotlin-jupyter-kernel
+
+# Switch back to jovyan to avoid accidental container runs as root
+USER $NB_UID
 # Copy jupyter_notebook_config.json
 COPY jupyter_notebook_config.json /etc/jupyter/
